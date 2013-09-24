@@ -1,0 +1,13 @@
+
+How to build:
+
+	make
+
+
+How to run:
+
+	Server:
+		sudo ./run.sh
+
+	Client:
+		ab -c 1 -n 100 http://192.168.1.2:20102/index.html

@@ -1,0 +1,37 @@
+
+整个文件包由以下部分组成：
+
+1. contrib：
+
+	提供操作系统模拟层、三种典型使用模型及使用案例。
+
+	操作系统模拟层包括：信号量、通信邮箱和线程的封装实现。
+	典型使用模型包括：生成动态库、单线程模型、多线程模型。
+
+	关键文件或目录：
+		contrib/ports/unix/sys_arch.c     操作系统模拟层实现
+		contrib/ports/unix/netif/         网络收发包的封装
+		contrib/ports/unix/proj/lib/      生成动态库
+		contrib/ports/unix/proj/minimal/  单线程模型
+		contrib/ports/unix/proj/unixsim/  多线程模型
+
+2. lwip：
+
+	提供协议栈核心及应用接口的实现。
+
+	关键文件或目录：
+		lwip/doc/                         说明文档
+		lwip/src/                         核心源码
+
+3. rawt_http：
+
+	一个基于回调形式实现的简易HTTP服务器，仅供参考。(存在BUG)
+
+4. select_server:
+
+	一个基于Socket API和select接口的简易服务器，结合ktx一起使用，仅供参考。
+
+5. ktx：
+
+	一个基于多线程的客户端数据发送程序，结合select_server一起使用，仅供参考。
+
