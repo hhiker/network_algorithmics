@@ -1,7 +1,7 @@
 #!/bin/bash
 
-LWIPLIBDIR=../contrib/ports/unix/proj/lib
-IOELIBDIR=../ioengine/lib
+LWIPLIBDIR=../../lwip_contrib/contrib/ports/unix/proj/lib
+IOELIBDIR=../../lwip_contrib/ioengine/lib
 
 export LD_LIBRARY_PATH=$LWIPLIBDIR:$IOELIBDIR:$LD_LIBRARY_PATH
 
