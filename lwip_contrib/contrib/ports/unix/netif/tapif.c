@@ -222,6 +222,13 @@ static struct pbuf *low_level_input(struct tapif *tapif)
 
 /*-----------------------------------------------------------------------------------*/
 
+/*
+ * TAP (as in network tap) simulates a link layer device and it operates with layer
+ * 2 packets such as Ethernet frames.
+ * 
+ * This is a constantly running thread which waits for incomming frames from
+ * sender. When a frame comes, it calls tapif_input to process it.
+ */
 static void tapif_thread(void *arg)
 {
 	int ret;
@@ -237,6 +244,7 @@ static void tapif_thread(void *arg)
 		FD_SET(tapif->fd, &fdset);
 
 		/* Wait for a packet to arrive. */
+
 		ret = select(tapif->fd + 1, &fdset, NULL, NULL, NULL);
 
 		if (ret == 1) {

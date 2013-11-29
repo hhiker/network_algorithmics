@@ -112,7 +112,7 @@ tcp_input(struct pbuf *p, struct netif *inp)
   tcp_debug_print(tcphdr);
 #endif
 
-  /* remove header from payload */
+  /* remove ip header from payload */
   if (pbuf_header(p, -((s16_t)(IPH_HL(iphdr) * 4))) || (p->tot_len < sizeof(struct tcp_hdr))) {
     /* drop short packets */
     LWIP_DEBUGF(TCP_INPUT_DEBUG, ("tcp_input: short packet (%"U16_F" bytes) discarded\n", p->tot_len));
@@ -832,11 +832,13 @@ tcp_oos_insert_segment(struct tcp_seg *cseg, struct tcp_seg *next)
 #endif /* TCP_QUEUE_OOSEQ */
 
 /**
- * Called by tcp_process. Checks if the given segment is an ACK for outstanding
- * data, and if so frees the memory of the buffered data. Next, is places the
- * segment on any of the receive queues (pcb->recved or pcb->ooseq). If the segment
- * is buffered, the pbuf is referenced by pbuf_ref so that it will not be freed until
- * it has been removed from the buffer.
+ * Called by tcp_process, it deals with what to do with the incoming tcp segment.
+ *
+ * Checks if the given segment is an ACK for outstanding data, and if so frees
+ * the memory of the buffered data. Next, is places the segment on any of the
+ * receive queues (pcb->recved or pcb->ooseq). If the segment is buffered, the
+ * pbuf is referenced by pbuf_ref so that it will not be freed until it has been
+ * removed from the buffer.
  *
  * If the incoming segment constitutes an ACK for a segment that was used for RTT
  * estimation, the RTT is estimated here as well.

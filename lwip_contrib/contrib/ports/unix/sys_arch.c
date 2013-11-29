@@ -260,6 +260,15 @@ sys_mbox_post(struct sys_mbox **mb, void *msg)
   sys_sem_signal(&mbox->mutex);
 }
 /*-----------------------------------------------------------------------------------*/
+
+/*
+ * Fetch the data or information in the system mailbox. This is the primary
+ * communication method provided by lwip. Applications use mailbox to communicate
+ * with tcpip thread when they need its function and the low-level interface uses
+ * mailbox to communicate with tcpip thread when data arrives or go.
+ *
+ * @see also sys_mbox_post
+ */
 u32_t
 sys_arch_mbox_tryfetch(struct sys_mbox **mb, void **msg)
 {
@@ -293,6 +302,7 @@ sys_arch_mbox_tryfetch(struct sys_mbox **mb, void **msg)
   return 0;
 }
 /*-----------------------------------------------------------------------------------*/
+
 u32_t
 sys_arch_mbox_fetch(struct sys_mbox **mb, void **msg, u32_t timeout)
 {
@@ -436,6 +446,13 @@ sys_arch_sem_wait(struct sys_sem **s, u32_t timeout)
   return (u32_t)time_needed;
 }
 /*-----------------------------------------------------------------------------------*/
+
+/*
+ * When a thread finished what it is called to do, it will call sys_sem_signal to
+ * signal the calling thread to tell it to go on.
+ * 
+ * This is the synchronization mechanism provided by os simulation layer.
+ */
 void
 sys_sem_signal(struct sys_sem **s)
 {

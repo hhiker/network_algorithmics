@@ -553,6 +553,15 @@ lwip_listen(int s, int backlog)
   return 0;
 }
 
+/*
+ * lwip_recvfrom is where the application calls the function of lwip stack and the
+ * data reading actually is done here. The steps are broken up below:
+ * 
+ *     1. Check if there is data left from the last recv operation. If there is, use
+ *       data already in the buffer. Otherwise, get more data from network(the
+ *       detail will be covered later).
+ *     2. Copy the data in the buffer to lwip supplied memory.
+ */
 int
 lwip_recvfrom(int s, void *mem, size_t len, int flags,
         struct sockaddr *from, socklen_t *fromlen)
@@ -576,6 +585,7 @@ lwip_recvfrom(int s, void *mem, size_t len, int flags,
   do {
     LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_recvfrom: top while sock->lastdata=%p\n", sock->lastdata));
     /* Check if there is data left from the last recv operation. */
+
     if (sock->lastdata) {
       buf = sock->lastdata;
     } else {
@@ -950,9 +960,19 @@ lwip_socket(int domain, int type, int protocol)
   struct netconn *conn;
   int i;
 
+  /* Hhiker Note: 
+   * lwip does not use the input para domain, thus it make it clear by using the
+   * satement below.*/
   LWIP_UNUSED_ARG(domain);
 
   /* create a netconn */
+  /* Hhiker Note: The protocol argument is usually zero, to select the default */
+    /* protocol for the given domain and socket type. When multiple protocols are */
+    /* supported for the same domain and socket type, we can use the protocol */
+    /* argument to select a particular protocol. The default protocol for a */
+    /* SOCK_STREAM socket in the AF_INET communication domain is TCP (Transmission */
+    /* Control Protocol). The default protocol for a SOCK_DGRAM socket in the */
+    /* AF_INET communication domain is UDP (User Datagram Protocol). */
   switch (type) {
   case SOCK_RAW:
     conn = netconn_new_with_proto_and_callback(NETCONN_RAW, (u8_t)protocol, event_callback);
