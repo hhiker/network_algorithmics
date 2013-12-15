@@ -20,7 +20,7 @@ select_server: select_server.c
 
 
 select_server_lwip: select_server.c
-	# (cd ../../lwip_contrib/contrib/ports/unix/proj/lib; $(MAKE))
+  (cd ../../lwip_contrib/contrib/ports/unix/proj/lib; $(MAKE))
 	gcc $(CFLAGS) -DLWIP $(INCLUDES) $^ -o $@ $(LIBS)
 
 
