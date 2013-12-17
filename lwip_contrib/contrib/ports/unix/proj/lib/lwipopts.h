@@ -276,5 +276,12 @@
 
 #define LWIP_CHECKSUM_ON_COPY           0
 
+/* 
+ * PCB hash-table search option.
+ * define 0: apply pcb hash table
+ * define 1: debug pcb hash table
+ * no define: don't use pcb hash table
+ */
+#define TCP_PCB_HASH			0
 
 #endif /* __LWIPOPTS_H__ */

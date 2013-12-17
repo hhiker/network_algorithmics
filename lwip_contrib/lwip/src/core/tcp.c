@@ -104,6 +104,9 @@ union tcp_listen_pcbs_t tcp_listen_pcbs;
 /** List of all TCP PCBs that are in a state in which
  * they accept or send data. */
 struct tcp_pcb *tcp_active_pcbs;
+#ifdef TCP_PCB_HASH
+struct pcb_hash pcb_hash_table[HASH_TABLE_SIZE];
+#endif
 /** List of all TCP PCBs in TIME-WAIT state */
 struct tcp_pcb *tcp_tw_pcbs;
 
@@ -123,6 +126,92 @@ static u8_t tcp_timer;
 static u8_t tcp_timer_ctr;
 static u16_t tcp_new_port(void);
 
+#ifdef TCP_PCB_HASH
+/**
+ * Calculate pcb hash value.
+ */
+u16_t
+get_hash(u16_t rport, u16_t lport, u32_t raddr, u32_t laddr)
+{
+  /*return (((rport & 0x0003) << 10) | \
+	  ((lport & 0x0003) << 8) | \
+	  ((raddr & 0x0000000f) << 4) | \
+	  (laddr & 0x0000000f)); 
+   */
+  return (rport & 0x0fff);
+}
+u16_t
+get_pcb_hash(struct tcp_pcb *pcb)
+{
+  //hash_debug_val("remote_port:%x\n",pcb->remote_port);
+  //hash_debug_val("local_port:%x\n",pcb->local_port);
+  //hash_debug_val("remote_ip:%x\n",pcb->remote_ip.addr);
+  //hash_debug_val("local_ip:%x\n",pcb->local_ip.addr);
+  return get_hash(pcb->remote_port, pcb->local_port,	\
+	 pcb->remote_ip.addr, pcb->local_ip.addr);
+}
+
+/**
+ * Initialize pcb hash table
+ */
+void
+tcp_init_hash()
+{
+  memset(pcb_hash_table , (int)NULL , sizeof(struct pcb_hash) * HASH_TABLE_SIZE); 
+}
+
+/**
+ * Add pcb into hash table.
+ */
+void
+tcp_reg_hash(struct tcp_pcb *pcb)
+{
+  u16_t val;
+  struct pcb_hash *item;
+
+  hash_debug("func:tcp_reg_hash\n");
+  val = get_pcb_hash(pcb);
+  hash_debug_val("hash value:%d\n",val);
+  item = &pcb_hash_table[val];
+  if(item->pcb == NULL){
+    item->pcb = pcb;
+  }else{
+    struct pcb_hash *new;
+    new = (struct pcb_hash*)malloc(sizeof(struct pcb_hash));
+    new->pcb = pcb;
+    new->next = item->next;
+    item->next = new; 
+  }
+}
+
+/**
+ * Remove pcb from hash table.
+ */
+void
+tcp_rmv_hash(struct tcp_pcb *pcb)
+{
+  u16_t val;
+  struct pcb_hash *item;
+
+  hash_debug("func:tcp_rmv_hash\n");
+  val = get_pcb_hash(pcb);
+  hash_debug_val("hash value:%d\n",val);
+  item = &pcb_hash_table[val];
+  if(item->next == NULL){
+    item->pcb = NULL;
+  }else{
+    struct pcb_hash *target,*pre;
+    for(pre = item,target = item->next ; target != NULL ; pre = pre->next,target = target->next){
+      if(target->pcb == pcb){
+	pre->next = target->next;
+	free(target);
+	break;
+      }
+    }
+  }
+}
+#endif
+
 /**
  * Initialize this module.
  */
@@ -132,6 +221,10 @@ tcp_init(void)
 #if LWIP_RANDOMIZE_INITIAL_LOCAL_PORTS && defined(LWIP_RAND)
   tcp_port = TCP_ENSURE_LOCAL_PORT_RANGE(LWIP_RAND());
 #endif /* LWIP_RANDOMIZE_INITIAL_LOCAL_PORTS && defined(LWIP_RAND) */
+
+#ifdef TCP_PCB_HASH
+  tcp_init_hash();
+#endif
 }
 
 /**

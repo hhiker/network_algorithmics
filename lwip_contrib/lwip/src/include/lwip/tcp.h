@@ -281,6 +281,29 @@ struct tcp_pcb {
   u8_t keep_cnt_sent;
 };
 
+/*if apply tcp pcb hash table*/
+#ifdef TCP_PCB_HASH
+/*pcb hash table*/
+struct pcb_hash{
+  struct tcp_pcb *pcb;
+  struct pcb_hash *next;
+};
+/*pcb hash table size*/
+#define HASH_TABLE_SIZE 4096
+/*pcb hash value calculation fuction*/
+u16_t get_hash(u16_t rport, u16_t lport, u32_t raddr, u32_t laddr);
+u16_t get_pcb_hash(struct tcp_pcb *pcb);
+
+#if TCP_PCB_HASH
+#define hash_debug(info) printf(info)
+#define hash_debug_val(info,val) printf(info,val)
+#else
+#define hash_debug(info) 
+#define hash_debug_val(info,val) 
+#endif
+
+#endif
+
 struct tcp_pcb_listen {  
 /* Common members of all PCB types */
   IP_PCB;

@@ -317,6 +317,9 @@ extern union tcp_listen_pcbs_t tcp_listen_pcbs;
 extern struct tcp_pcb *tcp_active_pcbs;  /* List of all TCP PCBs that are in a
               state in which they accept or send
               data. */
+#ifdef TCP_PCB_HASH
+extern struct pcb_hash pcb_hash_table[HASH_TABLE_SIZE];
+#endif
 extern struct tcp_pcb *tcp_tw_pcbs;      /* List of all TCP PCBs in TIME-WAIT. */
 
 extern struct tcp_pcb *tcp_tmp_pcb;      /* Only used for temporary storage. */
@@ -365,6 +368,14 @@ extern struct tcp_pcb *tcp_tmp_pcb;      /* Only used for temporary storage. */
 
 #else /* LWIP_DEBUG */
 
+#ifdef TCP_PCB_HASH
+#define TCP_REG_HASH(pcb) tcp_reg_hash(pcb)
+#define TCP_RMV_HASH(pcb) tcp_rmv_hash(pcb)
+#else
+#define TCP_REG_HASH(pcb) 
+#define TCP_RMV_HASH(pcb) 
+#endif /* used for pcb hash debug */ 
+
 #define TCP_REG(pcbs, npcb)                        \
   do {                                             \
     (npcb)->next = *pcbs;                          \
@@ -394,24 +405,31 @@ extern struct tcp_pcb *tcp_tmp_pcb;      /* Only used for temporary storage. */
 
 #define TCP_REG_ACTIVE(npcb)                       \
   do {                                             \
+    TCP_REG_HASH(npcb);				   \
     TCP_REG(&tcp_active_pcbs, npcb);               \
     tcp_active_pcbs_changed = 1;                   \
   } while (0)
 
 #define TCP_RMV_ACTIVE(npcb)                       \
   do {                                             \
+    TCP_RMV_HASH(npcb);				   \
     TCP_RMV(&tcp_active_pcbs, npcb);               \
     tcp_active_pcbs_changed = 1;                   \
   } while (0)
 
 #define TCP_PCB_REMOVE_ACTIVE(pcb)                 \
   do {                                             \
+    TCP_RMV_HASH(pcb);				   \
     tcp_pcb_remove(&tcp_active_pcbs, pcb);         \
     tcp_active_pcbs_changed = 1;                   \
   } while (0)
 
 
 /* Internal functions: */
+#ifdef TCP_PCB_HASH
+void tcp_reg_hash(struct tcp_pcb *pcb);
+void tcp_rmv_hash(struct tcp_pcb *pcb);
+#endif
 struct tcp_pcb *tcp_pcb_copy(struct tcp_pcb *pcb);
 void tcp_pcb_purge(struct tcp_pcb *pcb);
 void tcp_pcb_remove(struct tcp_pcb **pcblist, struct tcp_pcb *pcb);

@@ -112,7 +112,7 @@ tcp_input(struct pbuf *p, struct netif *inp)
   tcp_debug_print(tcphdr);
 #endif
 
-  /* remove ip header from payload */
+  /* remove header from payload */
   if (pbuf_header(p, -((s16_t)(IPH_HL(iphdr) * 4))) || (p->tot_len < sizeof(struct tcp_hdr))) {
     /* drop short packets */
     LWIP_DEBUGF(TCP_INPUT_DEBUG, ("tcp_input: short packet (%"U16_F" bytes) discarded\n", p->tot_len));
@@ -164,10 +164,19 @@ tcp_input(struct pbuf *p, struct netif *inp)
 
   /* Demultiplex an incoming segment. First, we check if it is destined
      for an active connection. */
-  prev = NULL;
 
-  
+#ifdef TCP_PCB_HASH
+  struct pcb_hash *hpcb;
+  pcb = NULL;
+  //hash_debug("tcp_input: search start\n");
+  hpcb=&pcb_hash_table[get_hash(tcphdr->src, tcphdr->dest, current_iphdr_src.addr, current_iphdr_dest.addr)];
+  if(hpcb->pcb)
+    for(; hpcb != NULL ; hpcb = hpcb->next){
+      pcb = hpcb->pcb;
+#else
+  prev = NULL;
   for(pcb = tcp_active_pcbs; pcb != NULL; pcb = pcb->next) {
+#endif
     LWIP_ASSERT("tcp_input: active pcb->state != CLOSED", pcb->state != CLOSED);
     LWIP_ASSERT("tcp_input: active pcb->state != TIME-WAIT", pcb->state != TIME_WAIT);
     LWIP_ASSERT("tcp_input: active pcb->state != LISTEN", pcb->state != LISTEN);
@@ -175,7 +184,7 @@ tcp_input(struct pbuf *p, struct netif *inp)
        pcb->local_port == tcphdr->dest &&
        ip_addr_cmp(&(pcb->remote_ip), &current_iphdr_src) &&
        ip_addr_cmp(&(pcb->local_ip), &current_iphdr_dest)) {
-
+#ifndef TCP_PCB_HASH
       /* Move this PCB to the front of the list so that subsequent
          lookups will be faster (we exploit locality in TCP segment
          arrivals). */
@@ -186,9 +195,12 @@ tcp_input(struct pbuf *p, struct netif *inp)
         tcp_active_pcbs = pcb;
       }
       LWIP_ASSERT("tcp_input: pcb->next != pcb (after cache)", pcb->next != pcb);
+#endif
       break;
     }
+#ifndef TCP_PCB_HASH
     prev = pcb;
+#endif
   }
 
   if (pcb == NULL) {
@@ -204,9 +216,9 @@ tcp_input(struct pbuf *p, struct netif *inp)
            of the list since we are not very likely to receive that
            many segments for connections in TIME-WAIT. */
         LWIP_DEBUGF(TCP_INPUT_DEBUG, ("tcp_input: packed for TIME_WAITing connection.\n"));
-        tcp_timewait_input(pcb);
+        /*tcp_timewait_input(pcb);
         pbuf_free(p);
-        return;
+        return;*/
       }
     }
 
@@ -832,13 +844,11 @@ tcp_oos_insert_segment(struct tcp_seg *cseg, struct tcp_seg *next)
 #endif /* TCP_QUEUE_OOSEQ */
 
 /**
- * Called by tcp_process, it deals with what to do with the incoming tcp segment.
- *
- * Checks if the given segment is an ACK for outstanding data, and if so frees
- * the memory of the buffered data. Next, is places the segment on any of the
- * receive queues (pcb->recved or pcb->ooseq). If the segment is buffered, the
- * pbuf is referenced by pbuf_ref so that it will not be freed until it has been
- * removed from the buffer.
+ * Called by tcp_process. Checks if the given segment is an ACK for outstanding
+ * data, and if so frees the memory of the buffered data. Next, is places the
+ * segment on any of the receive queues (pcb->recved or pcb->ooseq). If the segment
+ * is buffered, the pbuf is referenced by pbuf_ref so that it will not be freed until
+ * it has been removed from the buffer.
  *
  * If the incoming segment constitutes an ACK for a segment that was used for RTT
  * estimation, the RTT is estimated here as well.
