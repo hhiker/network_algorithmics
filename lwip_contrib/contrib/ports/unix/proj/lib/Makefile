@@ -39,7 +39,7 @@ LWIPDIR=$(CONTRIBDIR)/../lwip/src
 
 CCDEP=gcc
 CC=gcc
-CFLAGS=-g -Wall -O2 -fPIC -DIPv4 -DLWIP_DEBUG
+CFLAGS=-g -Wall -O2 -fPIC -DIPv4
 
 CFLAGS:=$(CFLAGS) \
 	-I$(LWIPDIR)/include -I$(LWIPARCH)/include -I$(LWIPDIR)/include/ipv4 \

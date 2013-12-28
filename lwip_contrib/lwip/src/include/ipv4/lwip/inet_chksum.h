@@ -53,6 +53,10 @@
 #define FOLD_U32T(u)          (((u) >> 16) + ((u) & 0x0000ffffUL))
 #endif
 
+#ifndef FOLD_U64T
+#define FOLD_U64T(u)  (((u) >> 32) + ((u) & 0x00000000ffffffffUL))
+#endif
+
 #if LWIP_CHECKSUM_ON_COPY
 /** Function-like macro: same as MEMCPY but returns the checksum of copied data
     as u16_t */

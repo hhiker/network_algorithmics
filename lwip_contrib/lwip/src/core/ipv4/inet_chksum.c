@@ -131,45 +131,99 @@ lwip_standard_chksum(void *dataptr, u16_t len)
  * @return host order (!) lwip checksum (non-inverted Internet sum) 
  */
 
-static u16_t
-lwip_standard_chksum(void *dataptr, int len)
+static u16_t lwip_standard_chksum(void *dataptr, int len)
 {
   u8_t *pb = (u8_t *)dataptr;
   u16_t *ps, t = 0;
-  u32_t sum = 0;
+  u32_t *pl;
+  u64_t *pll;
+  u64_t sum = 0;
+  u64_t n;
   int odd = ((mem_ptr_t)pb & 1);
 
-  /* Get aligned to u16_t */
-  if (odd && len > 0) {
-    ((u8_t *)&t)[1] = *pb++;
-    len--;
+	// Get aligned to u16_t
+	if (odd && len > 0) {
+	  ((u8_t *)&t)[1] = *pb++;
+	  len--;
+	}
+	ps = (u16_t *)(void *)pb;
+
+	if (((mem_ptr_t)ps & 3) && len > 1) {
+		  sum += *ps++;
+		  len -= 2;
+		}
+	pl = (u32_t *)ps;
+	
+	if(len<=20)
+  {
+  	while (len > 3) {
+      sum += *pl++;
+      len -= 4;
+    }
+    ps = (u16_t *)(void *)pl;
+		if(len > 1) {
+		  sum += *ps++;
+		  len -= 2;
+		}
   }
+	else
+  {
+		if(((mem_ptr_t)pl & 7) && len > 3) {
+		  sum += *pl++;
+		  len -= 4;
+		}
+		pll = (u64_t *)pl;
+		
+		//******//*****//********//******//*****//********//******//*****//********
+	 	n = len/8;
+	 	if(n)
+	 	{
+			asm
+			(
+				"leaq -8(%1,%4,8),%%rcx\n\t"
+				"1:\n\t"
+				"addq (%%rcx), %0\n\t"
+				"adcq $0,%0\n\t"
+				"subq $8,%%rcx\n\t"
+				"cmpq %%rcx,%1\n\t"
+				"jle 1b\n\t"
+				"\n\t"
+				:"=r"(sum), "=r"(pll)
+				:"r"(pll), "r"(sum), "r"(n)
+				:"%rcx"
+			);
+			len &= 7;
+			pll+=n;
+		}
+		//******//*****//********//******//*****//********//******//*****//********
+		
+		sum = FOLD_U64T(sum);
+		
+		// Consume left-over byte, if any
+		ps = (u16_t *)(void *)pll;
+		while(len > 1) {
+		  sum += *ps++;
+		  len -= 2;
+		}
+ 
+		// Fold 32-bit sum to 16 bits
+		//  calling this twice is propably faster than if statements...
+		sum = FOLD_U64T(sum);
+		sum = FOLD_U64T(sum);
+	}
+	
+	if (len > 0) {
+	  ((u8_t *)&t)[0] = *((u8_t *)ps);
+	}
+	// Add end bytes
+	sum += t;
+	sum = FOLD_U32T(sum);
+	sum = FOLD_U32T(sum);
 
-  /* Add the bulk of the data */
-  ps = (u16_t *)(void *)pb;
-  while (len > 1) {
-    sum += *ps++;
-    len -= 2;
-  }
-
-  /* Consume left-over byte, if any */
-  if (len > 0) {
-    ((u8_t *)&t)[0] = *(u8_t *)ps;
-  }
-
-  /* Add end bytes */
-  sum += t;
-
-  /* Fold 32-bit sum to 16 bits
-     calling this twice is propably faster than if statements... */
-  sum = FOLD_U32T(sum);
-  sum = FOLD_U32T(sum);
-
-  /* Swap if alignment was odd */
-  if (odd) {
-    sum = SWAP_BYTES_IN_WORD(sum);
-  }
-
+	// Swap if alignment was odd
+	if (odd) {
+	  sum = SWAP_BYTES_IN_WORD(sum);
+	}
   return (u16_t)sum;
 }
 #endif

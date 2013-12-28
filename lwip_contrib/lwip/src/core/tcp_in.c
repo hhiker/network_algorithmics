@@ -206,7 +206,17 @@ tcp_input(struct pbuf *p, struct netif *inp)
   if (pcb == NULL) {
     /* If it did not go to an active connection, we check the connections
        in the TIME-WAIT state. */
+#ifdef TCP_PCB_HASH
+  struct pcb_hash *hpcb;
+  pcb = NULL;
+  //hash_debug("tcp_input: search start\n");
+  hpcb=&pcb_hash_table[get_hash(tcphdr->src, tcphdr->dest, current_iphdr_src.addr, current_iphdr_dest.addr)];
+  if(hpcb->pcb)
+    for(; hpcb != NULL ; hpcb = hpcb->next){
+      pcb = hpcb->pcb;
+#else
     for(pcb = tcp_tw_pcbs; pcb != NULL; pcb = pcb->next) {
+#endif
       LWIP_ASSERT("tcp_input: TIME-WAIT pcb->state == TIME-WAIT", pcb->state == TIME_WAIT);
       if (pcb->remote_port == tcphdr->src &&
          pcb->local_port == tcphdr->dest &&
