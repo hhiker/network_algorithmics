@@ -1,6 +1,10 @@
-*.class
-
-# Package Files #
-*.jar
-*.war
-*.ear
+apps/ktx/ktx
+oprofile_data/
+apps/select_server/select_server
+apps/select_server/select_server_lwip
+apps/rawt_http/rawt_http
+doc
+reference/
+tar/
+*.sh
+perf_test
